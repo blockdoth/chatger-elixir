@@ -25,3 +25,5 @@ chatger_server-*.tar
 .direnv
 .envrc
 /chatger_server
+.lexical
+.vscode
