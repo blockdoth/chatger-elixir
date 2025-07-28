@@ -1,14 +1,15 @@
+require Logger
+
 defmodule Chatger.Server do
   def start(port \\ 4348) do
     {:ok, socket} =
       :gen_tcp.listen(port, [
         :binary,
-        packet: :line,
         active: false,
         reuseaddr: true
       ])
 
-    IO.puts("Listening on port #{port}")
+    Logger.info("Listening on port #{port}")
     accept_loop(socket)
   end
 
@@ -21,7 +22,7 @@ defmodule Chatger.Server do
         accept_loop(listen_socket)
 
       {:error, reason} ->
-        IO.puts("Accept failed: #{inspect(reason)}")
+        Logger.error("Accept failed: #{inspect(reason)}")
         accept_loop(listen_socket)
     end
   end

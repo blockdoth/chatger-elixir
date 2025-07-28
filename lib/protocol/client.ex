@@ -1,60 +1,53 @@
+require Logger
+
+defprotocol Chatger.Protocol.DeserializablePacket do
+  def deserialize(binary)
+end
+
 defmodule Chatger.Protocol.Client do
+  alias Chatger.Protocol.Shared.HealthCheckPacket
+
   alias __MODULE__.{
-    HealthCheckPacket,
     LoginPacket,
     SendMessagePacket,
-    SendMediaPacket,
-    ChannelsListPacket,
-    ChannelsPacket,
-    HistoryPacket,
-    UserStatusesPacket,
-    UsersPacket,
-    MediaPacket,
-    TypingPacket,
-    StatusPacket
+    SendGetMediaPacket,
+    GetChannelsListPacket,
+    GetChannelsPacket,
+    GetHistoryPacket,
+    GetUserStatusesPacket,
+    GetUsersPacket,
+    GetMediaPacket,
+    SendTypingPacket,
+    SendStatusPacket
   }
 
-  def parse(0x80, binary), do: HealthCheckPacket.parse(binary)
-  def parse(0x81, binary), do: LoginPacket.parse(binary)
-  def parse(0x82, binary), do: SendMessagePacket.parse(binary)
-  def parse(0x83, binary), do: SendMediaPacket.parse(binary)
-  def parse(0x84, binary), do: ChannelsListPacket.parse(binary)
-  def parse(0x85, binary), do: ChannelsPacket.parse(binary)
-  def parse(0x86, binary), do: HistoryPacket.parse(binary)
-  def parse(0x87, binary), do: UserStatusesPacket.parse(binary)
-  def parse(0x88, binary), do: UsersPacket.parse(binary)
-  def parse(0x89, binary), do: MediaPacket.parse(binary)
-  def parse(0x8A, binary), do: TypingPacket.parse(binary)
-  def parse(0x8B, binary), do: StatusPacket.parse(binary)
-  def parse(_, _), do: {:error, :unknown_packet}
-
-  defmodule HealthCheckPacket do
-    defstruct [:kind]
-
-    def parse(<<0x00>>) do
-      {:ok, %__MODULE__{kind: :ping}}
-    end
-
-    def parse(<<0x01>>) do
-      {:ok, %__MODULE__{kind: :pong}}
-    end
-
-    def parse(_), do: {:error, :unknown_health_check_status}
-  end
+  def deserialize(0x80, binary), do: HealthCheckPacket.deserialize(binary)
+  def deserialize(0x81, binary), do: LoginPacket.deserialize(binary)
+  def deserialize(0x82, binary), do: SendMessagePacket.deserialize(binary)
+  def deserialize(0x83, binary), do: SendGetMediaPacket.deserialize(binary)
+  def deserialize(0x84, binary), do: GetChannelsListPacket.deserialize(binary)
+  def deserialize(0x85, binary), do: GetChannelsPacket.deserialize(binary)
+  def deserialize(0x86, binary), do: GetHistoryPacket.deserialize(binary)
+  def deserialize(0x87, binary), do: GetUserStatusesPacket.deserialize(binary)
+  def deserialize(0x88, binary), do: GetUsersPacket.deserialize(binary)
+  def deserialize(0x89, binary), do: GetMediaPacket.deserialize(binary)
+  def deserialize(0x8A, binary), do: SendTypingPacket.deserialize(binary)
+  def deserialize(0x8B, binary), do: SendStatusPacket.deserialize(binary)
+  def deserialize(_, _), do: {:error, :unknown_packet}
 
   defmodule LoginPacket do
     defstruct [:username, :password]
 
-    def parse(data) do
+    def deserialize(binary) do
       # Find null byte separator
-      case :binary.match(data, <<0>>) do
+      case :binary.match(binary, <<0>>) do
         {username_len, 1} ->
-          <<username::binary-size(username_len), 0, password::binary>> = data
+          <<username::binary-size(username_len), 0, password::binary>> = binary
 
           cond do
             byte_size(username) < 3 or byte_size(username) > 128 -> {:error, :invalid_username_length}
             byte_size(password) < 1 or byte_size(password) > 1024 -> {:error, :invalid_password_length}
-            true -> {:ok, %__MODULE__{username: username, password: password}}
+            true -> {:ok, %LoginPacket{username: username, password: password}}
           end
 
         :nomatch ->
@@ -66,7 +59,7 @@ defmodule Chatger.Protocol.Client do
   defmodule SendMessagePacket do
     defstruct [:channel_id, :reply_id, :media_ids, :message_text]
 
-    def parse(<<channel_id::64, reply_id::64, num_media::8, rest::binary>>) do
+    def deserialize(<<channel_id::64, reply_id::64, num_media::8, rest::binary>>) do
       media_size = num_media * 8
 
       <<media_bin::binary-size(media_size), message_text::binary>> = rest
@@ -86,61 +79,61 @@ defmodule Chatger.Protocol.Client do
       end
     end
 
-    def parse(_), do: {:error, :invalid_packet}
+    def deserialize(_), do: {:error, :invalid_packet}
   end
 
-  defmodule SendMediaPacket do
+  defmodule SendGetMediaPacket do
     defstruct []
 
-    def parse(_data), do: {:error, :not_implemented}
+    def deserialize(_data), do: {:error, :not_implemented}
   end
 
-  defmodule ChannelsListPacket do
+  defmodule GetChannelsListPacket do
     defstruct []
 
-    def parse(_data), do: {:error, :not_implemented}
+    def deserialize(_data), do: {:error, :not_implemented}
   end
 
-  defmodule ChannelsPacket do
+  defmodule GetChannelsPacket do
     defstruct []
 
-    def parse(_data), do: {:error, :not_implemented}
+    def deserialize(_data), do: {:error, :not_implemented}
   end
 
-  defmodule HistoryPacket do
+  defmodule GetHistoryPacket do
     defstruct []
 
-    def parse(_data), do: {:error, :not_implemented}
+    def deserialize(_data), do: {:error, :not_implemented}
   end
 
-  defmodule UserStatusesPacket do
+  defmodule GetUserStatusesPacket do
     defstruct []
 
-    def parse(_data), do: {:error, :not_implemented}
+    def deserialize(_data), do: {:error, :not_implemented}
   end
 
-  defmodule UsersPacket do
+  defmodule GetUsersPacket do
     defstruct []
 
-    def parse(_data), do: {:error, :not_implemented}
+    def deserialize(_data), do: {:error, :not_implemented}
   end
 
-  defmodule MediaPacket do
+  defmodule GetMediaPacket do
     defstruct []
 
-    def parse(_data), do: {:error, :not_implemented}
+    def deserialize(_data), do: {:error, :not_implemented}
   end
 
-  defmodule TypingPacket do
+  defmodule SendTypingPacket do
     defstruct []
 
-    def parse(_data), do: {:error, :not_implemented}
+    def deserialize(_data), do: {:error, :not_implemented}
   end
 
-  defmodule StatusPacket do
+  defmodule SendStatusPacket do
     defstruct [:status]
 
-    def parse(<<status::8>>) do
+    def deserialize(<<status::8>>) do
       {:ok,
        %__MODULE__{
          status: status
