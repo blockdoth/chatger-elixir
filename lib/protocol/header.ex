@@ -1,23 +1,23 @@
 require Logger
 
 defmodule Chatger.Protocol.Header do
-  defstruct [:version, :packet_id, :length]
+  defstruct [:version, :packet_id, :packet_length]
   # -> CHTG
   @magic_number 0x43485447
 
   # [magic_number|4][version|1][user/server+packet_id|1][length|4][ packet content ]
-  def deserialize(<<@magic_number::32, version::8, packet_id::8, length::32, rest::binary>>) do
-    Logger.debug("deserialized header: version:1 #{version}, packet_id: #{packet_id}, length: #{length}")
+  def deserialize(<<@magic_number::32, version::8, packet_id::8, packet_length::32>>) do
+    Logger.debug("deserialized header: version: #{version}, packet_id: #{packet_id}, length: #{packet_length}")
 
     {:ok,
      %__MODULE__{
        version: version,
        packet_id: packet_id,
-       length: length
-     }, rest}
+       packet_length: packet_length
+     }}
   end
 
-  def serialize(version, packet_id, length) do
-    <<@magic_number::32, version::8, packet_id::8, length::32>>
+  def serialize(version, packet_id, packet_length) do
+    <<@magic_number::32, version::8, packet_id::8, packet_length::32>>
   end
 end

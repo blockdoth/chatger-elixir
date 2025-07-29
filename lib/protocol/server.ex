@@ -30,27 +30,11 @@ defmodule Chatger.Protocol.Server do
     def packet_id(_), do: 0x01
 
     def serialize(%{status: status, error_message: nil}) do
-      {:ok, <<status::8>>}
+      <<status::8>>
     end
 
     def serialize(%{status: status, error_message: msg}) do
-      {:ok, <<status::8, msg::binary>>}
-    end
-  end
-
-  defmodule LoginAckPacket do
-    defstruct [:status, :error_message]
-  end
-
-  defimpl SerializablePacket, for: LoginAckPacket do
-    def packet_id(_), do: 0x01
-
-    def serialize(%{status: status, error_message: nil}) do
-      {:ok, <<status::8>>}
-    end
-
-    def serialize(%{status: status, error_message: msg}) do
-      {:ok, <<status::8, msg::binary>>}
+      <<status::8, msg::binary>>
     end
   end
 

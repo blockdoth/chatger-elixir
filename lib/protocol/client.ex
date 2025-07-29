@@ -139,5 +139,7 @@ defmodule Chatger.Protocol.Client do
          status: status
        }}
     end
+
+    def deserialize(_), do: {:error, :invalid_packet}
   end
 end

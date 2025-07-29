@@ -2,7 +2,6 @@ require Logger
 
 defmodule Chatger.Server.Connection do
   use GenServer
-  alias Chatger.Server.Parser
   alias Chatger.Server.Handler
   alias Chatger.Server.Transmission
 
@@ -17,29 +16,21 @@ defmodule Chatger.Server.Connection do
         Logger.error("Client connected (peer info not available)")
     end
 
-    :inet.setopts(socket, active: true)
-    {:ok, %{socket: socket}}
+    :inet.setopts(socket, active: :once)
+    {:ok, %{socket: socket, buffer: ""}}
   end
 
-  def handle_info({:tcp, socket, data}, state) do
-    case Parser.deserialize(data) do
-      {:ok, deserialized} ->
-        Logger.info(deserialized, label: "Deserialized packet")
+  def handle_info({:tcp, socket, data}, %{buffer: buffer} = state) do
+    new_buffer = buffer <> data
 
-        case Handler.handle_packet(deserialized) do
-          {:ok, response_packet} ->
-            Transmission.send_packet(socket, response_packet)
+    # Parse 1 or more packets from the current buffer
+    {packets, rest} = Transmission.recv_packet(new_buffer)
 
-          {:error, reason} ->
-            :gen_tcp.send(socket, reason)
-        end
+    Enum.each(packets, fn packet -> Handler.handle_packet(socket, packet) end)
 
-      {:error, reason} ->
-        Logger.error("Deserialize error: #{inspect(reason)}")
-        :gen_tcp.send(socket, "Invalid packet\n")
-    end
-
-    {:noreply, state}
+    # Mark that we are ready to receive a new packet
+    :inet.setopts(state.socket, active: :once)
+    {:noreply, %{state | buffer: rest}}
   end
 
   def handle_info({:tcp_closed, _socket}, state) do

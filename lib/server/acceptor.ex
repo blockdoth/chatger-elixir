@@ -1,6 +1,6 @@
 require Logger
 
-defmodule Chatger.Server do
+defmodule Chatger.Server.Acceptor do
   def start(port \\ 4348) do
     {:ok, socket} =
       :gen_tcp.listen(port, [
