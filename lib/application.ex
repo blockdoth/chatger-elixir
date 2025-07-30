@@ -3,7 +3,8 @@ defmodule Chatger.Application do
 
   def start(_type, _args) do
     children = [
-      {Task, fn -> Chatger.Server.Acceptor.start(4348) end}
+      Chatger.Database,
+      {Chatger.Server.Acceptor, 4348}
     ]
 
     opts = [strategy: :one_for_one, name: Chatger.Supervisor]

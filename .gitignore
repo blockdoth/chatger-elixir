@@ -27,3 +27,4 @@ chatger_server-*.tar
 /chatger_server
 .lexical
 .vscode
+/data
