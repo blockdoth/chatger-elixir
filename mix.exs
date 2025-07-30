@@ -8,7 +8,7 @@ defmodule Chatger.MixProject do
       elixir: "~> 1.17.3",
       start_permanent: Mix.env() == :prod,
       deps: [
-        {:exqlite, "~> 0.27"},
+        {:exqlite, "~> 0.27"}
       ],
       escript: [main_module: Chatger]
     ]

@@ -91,7 +91,7 @@ defmodule Chatger.Protocol.Client do
   defmodule GetChannelsListPacket do
     defstruct []
 
-    def deserialize(_data), do: {:error, :not_implemented}
+    def deserialize(_data), do: {:ok, %__MODULE__{}}
   end
 
   defmodule GetChannelsPacket do
@@ -109,7 +109,7 @@ defmodule Chatger.Protocol.Client do
   defmodule GetUserStatusesPacket do
     defstruct []
 
-    def deserialize(_data), do: {:error, :not_implemented}
+    def deserialize(_data), do: {:ok, %__MODULE__{}}
   end
 
   defmodule GetUsersPacket do

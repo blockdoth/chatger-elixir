@@ -34,7 +34,7 @@ defmodule Chatger.Protocol.Server do
     end
 
     def serialize(%{status: status, error_message: msg}) do
-      <<status::8, msg::binary>>
+      <<serialize(%{status: status, error_message: nil}), msg::binary>>
     end
   end
 
@@ -52,9 +52,21 @@ defmodule Chatger.Protocol.Server do
   end
 
   defmodule ChannelsListPacket do
-    defstruct []
+    defstruct [:status, :channel_ids, :error_message]
+  end
 
-    def serialize(_packet), do: {:error, :not_implemented}
+  defimpl SerializablePacket, for: ChannelsListPacket do
+    def packet_id(_), do: 0x04
+
+    def serialize(%{status: status, channel_ids: channel_ids, error_message: nil}) do
+      channel_ids_count = length(channel_ids)
+      channels_bin = Enum.reduce(channel_ids, <<>>, fn id, acc -> acc <> <<id::64>> end)
+      <<status::8, channel_ids_count::16, channels_bin::binary>>
+    end
+
+    def serialize(%{status: status, channel_ids: channel_ids, error_message: msg}) do
+      <<serialize(%{status: status, channel_ids: channel_ids, error_message: nil}), msg::binary>>
+    end
   end
 
   defmodule ChannelsPacket do
@@ -69,10 +81,25 @@ defmodule Chatger.Protocol.Server do
     def serialize(_packet), do: {:error, :not_implemented}
   end
 
+  # pub status: ReturnStatus,
+  # pub users: Vec<(UserId, UserStatus)>,
+  # pub error_message: Option<String>,
   defmodule UserStatusesPacket do
-    defstruct []
+    defstruct [:status, :user_statuses, :error_message]
+  end
 
-    def serialize(_packet), do: {:error, :not_implemented}
+  defimpl SerializablePacket, for: UserStatusesPacket do
+    def packet_id(_), do: 0x07
+
+    def serialize(%{status: status, user_statuses: user_statuses, error_message: nil}) do
+      user_statuses_count = length(user_statuses)
+      user_statuses_bin = Enum.reduce(user_statuses, <<>>, fn {id, status}, acc -> acc <> <<id::64, status::8>> end)
+      <<status::8, user_statuses_count::16, user_statuses_bin::binary>>
+    end
+
+    def serialize(%{status: status, channels_ids: channels_ids, error_message: msg}) do
+      <<serialize(%{status: status, channels_ids: channels_ids, error_message: nil}), msg::binary>>
+    end
   end
 
   defmodule UsersPacket do

@@ -27,29 +27,29 @@
           elixir = pkgs.beam.packages.${erlangVersion}.${elixirVersion};
           erlang = pkgs.beam.interpreters.${erlangVersion};
 
-          shathreeExtension = pkgs.stdenv.mkDerivation {
-            pname = "sqlite-shathree-extension";
-            version = "1.0";
+          # shathreeExtension = pkgs.stdenv.mkDerivation {
+          #   pname = "sqlite-shathree-extension";
+          #   version = "1.0";
 
-            src = pkgs.fetchurl {
-              url = "https://sqlite.org/src/raw/fd22d70620f86a0467acfdd3acd8435d5cb54eb1e2d9ff36ae44e389826993df?at=shathree.c";
-              sha256 = "sha256-g+rtAqhcn1xVsHKzPrUk054ORNTvr48d2ujHOctMTW8=";
-            };
+          #   src = pkgs.fetchurl {
+          #     url = "https://sqlite.org/src/raw/fd22d70620f86a0467acfdd3acd8435d5cb54eb1e2d9ff36ae44e389826993df?at=shathree.c";
+          #     sha256 = "sha256-g+rtAqhcn1xVsHKzPrUk054ORNTvr48d2ujHOctMTW8=";
+          #   };
 
-            nativeBuildInputs = [ pkgs.sqlite pkgs.gcc  ];
+          #   nativeBuildInputs = [ pkgs.sqlite pkgs.gcc  ];
 
-            buildCommand = ''
-              mkdir -p $out/lib
-              gcc -shared -fPIC -o $out/lib/shathree.so $src/shathree.c
-            '';
+          #   buildCommand = ''
+          #     mkdir -p $out/lib
+          #     gcc -shared -fPIC -o $out/lib/shathree.so $src/shathree.c
+          #   '';
 
-          };
+          # };
         in
         {
           devShells.default = pkgs.mkShell {
-            shellHook = ''
-              ln -sf ${shathreeExtension}/lib/shathree.so $PWD/include/shathree.so
-            '';               
+            # shellHook = ''
+            #   ln -sf ${shathreeExtension}/lib/shathree.so $PWD/include/shathree.so
+            # '';               
             packages = [
               elixir
               erlang
