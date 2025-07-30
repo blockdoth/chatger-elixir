@@ -169,7 +169,7 @@ defmodule Chatger.Database.Queries do
         # reply id default is 0
         messages =
           Enum.map(rows, fn [message_id, sent_timestamp, user_id, channel_id, reply_id, message] ->
-            {message_id, sent_timestamp, user_id, channel_id, reply_id || 0, message, []}
+            {message_id, sent_timestamp, user_id, channel_id, reply_id, message, []}
           end)
 
         Logger.debug("Found #{inspect(messages)} messages")
@@ -217,10 +217,9 @@ defmodule Chatger.Database.Queries do
 
       {:ok, rows} ->
         # The media id's column doesnt exist in the db at this point in time (30/07/25)
-        # reply id default is 0
         messages =
           Enum.map(rows, fn [message_id, sent_timestamp, user_id, channel_id, reply_id, content] ->
-            {message_id, sent_timestamp, user_id, channel_id, reply_id || 0, content, []}
+            {message_id, sent_timestamp, user_id, channel_id, reply_id, content, []}
           end)
 
         Logger.debug("Found #{inspect(messages)} messages")

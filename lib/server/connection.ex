@@ -2,8 +2,11 @@ require Logger
 
 defmodule Chatger.Server.Connection do
   use GenServer
+  alias Chatger.Protocol.Shared.HealthCheckPacket
   alias Chatger.Server.Handler
   alias Chatger.Server.Transmission
+
+  @interval 5_000
 
   def start_link(opts), do: GenServer.start_link(__MODULE__, opts)
 
@@ -19,6 +22,7 @@ defmodule Chatger.Server.Connection do
     :inet.setopts(socket, active: :once)
 
     Registry.register(Chatger.ConnectionRegistry, :connections, self())
+    :timer.send_interval(@interval, :send_healthcheck)
     {:ok, %{socket: socket, buffer: "", user_id: nil}}
   end
 
@@ -37,8 +41,18 @@ defmodule Chatger.Server.Connection do
 
   def handle_info({:broadcast, packet, origin_id}, state) do
     if origin_id != state.user_id do
-      Chatger.Server.Transmission.send_packet(state.socket, packet)
+      Transmission.send_packet(state.socket, packet)
     end
+
+    {:noreply, state}
+  end
+
+  def handle_info(:send_healthcheck, state) do
+    Logger.info("Sending healthcheck")
+
+    Transmission.send_packet(state.socket, %HealthCheckPacket{
+      kind: :ping
+    })
 
     {:noreply, state}
   end

@@ -34,7 +34,6 @@ defmodule Chatger.Server.Handler do
         handle_packets(socket, rest, new_user_id)
 
       {:broadcast, :no_reply, broadcast_response, new_user_id} ->
-        Logger.info("Broadcast is not implemented yet")
         Transmission.broadcast_packet(broadcast_response, new_user_id)
         handle_packets(socket, rest, new_user_id)
 
@@ -70,12 +69,9 @@ defmodule Chatger.Server.Handler do
   end
 
   def handle_packet(%HealthCheckPacket{kind: :pong}, user_id) do
-    Logger.info("Received a pong. Responding with ping.")
+    Logger.info("Received a pong. Not sure what to do")
 
-    {:reply,
-     %HealthCheckPacket{
-       kind: :ping
-     }, user_id}
+    {:no_reply, user_id}
   end
 
   def handle_packet(%LoginPacket{username: username, password: password}, user_id) do
@@ -188,6 +184,7 @@ defmodule Chatger.Server.Handler do
         },
         user_id
       ) do
+    reply_id = if reply_id == 0, do: nil, else: reply_id
     {:ok, {message_id, sent_timestamp}} = Queries.save_message(user_id, channel_id, reply_id, media_ids, message_text)
 
     {:broadcast,
