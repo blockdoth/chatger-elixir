@@ -85,19 +85,37 @@ defmodule Chatger.Protocol.Client do
   defmodule SendGetMediaPacket do
     defstruct []
 
-    def deserialize(_data), do: {:error, :not_implemented}
+    def deserialize(_), do: {:error, :not_implemented}
   end
 
   defmodule GetChannelsListPacket do
     defstruct []
 
-    def deserialize(_data), do: {:ok, %__MODULE__{}}
+    def deserialize(_), do: {:ok, %__MODULE__{}}
   end
 
   defmodule GetChannelsPacket do
-    defstruct []
+    defstruct [:channel_ids]
 
-    def deserialize(_data), do: {:error, :not_implemented}
+    def deserialize(<<channel_count::16, channels_bin::binary>>) do
+      channels_bin_size = channel_count * 8
+      # Logger.debug("#{inspect(bin)}")
+      # Logger.debug("#{inspect(channels_bin_size)}")
+      # Logger.debug(byte_size("#{inspect(channels_bin)}"))
+
+      if byte_size(channels_bin) == channels_bin_size do
+        channel_ids = for <<channel_id::64 <- channels_bin>>, do: channel_id
+
+        {:ok,
+         %__MODULE__{
+           channel_ids: channel_ids
+         }}
+      else
+        {:error, :invalid_packet_size}
+      end
+    end
+
+    def deserialize(_), do: {:error, :invalid_packet}
   end
 
   defmodule GetHistoryPacket do

@@ -2,10 +2,12 @@ defmodule Chatger.Server.Handler do
   require Logger
   alias Chatger.Database.Queries
   alias Chatger.Protocol.Client.GetChannelsListPacket
+  alias Chatger.Protocol.Client.GetChannelsPacket
   alias Chatger.Protocol.Client.GetUserStatusesPacket
   alias Chatger.Protocol.Client.LoginPacket
   alias Chatger.Protocol.Client.SendStatusPacket
   alias Chatger.Protocol.Server.ChannelsListPacket
+  alias Chatger.Protocol.Server.ChannelsPacket
   alias Chatger.Protocol.Server.LoginAckPacket
   alias Chatger.Protocol.Server.UserStatusesPacket
   alias Chatger.Protocol.Shared.HealthCheckPacket
@@ -64,8 +66,7 @@ defmodule Chatger.Server.Handler do
       {:ok, new_user_id} ->
         {:reply,
          %LoginAckPacket{
-           status: @returnSuccess,
-           error_message: nil
+           status: @returnSuccess
          }, new_user_id}
 
       {:error, :not_found} ->
@@ -88,8 +89,7 @@ defmodule Chatger.Server.Handler do
     {:reply,
      %ChannelsListPacket{
        status: @returnSuccess,
-       channel_ids: channel_ids,
-       error_message: nil
+       channel_ids: channel_ids
      }, user_id}
   end
 
@@ -99,13 +99,22 @@ defmodule Chatger.Server.Handler do
     {:reply,
      %UserStatusesPacket{
        status: @returnSuccess,
-       user_statuses: user_statuses,
-       error_message: nil
+       user_statuses: user_statuses
+     }, user_id}
+  end
+
+  def handle_packet(%GetChannelsPacket{channel_ids: channel_ids}, user_id) do
+    {:ok, channels} = Queries.get_channels(channel_ids)
+
+    {:reply,
+     %ChannelsPacket{
+       status: @returnSuccess,
+       channels: channels
      }, user_id}
   end
 
   def handle_packet(other, user_id) do
-    Logger.warning("Unhandled packet: #{inspect(other)} for #{user_id}")
+    Logger.warning("Unhandled packet: #{inspect(other)} for user id #{user_id}")
     {:no_reply, user_id}
   end
 end

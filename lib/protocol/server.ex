@@ -29,12 +29,12 @@ defmodule Chatger.Protocol.Server do
   defimpl SerializablePacket, for: LoginAckPacket do
     def packet_id(_), do: 0x01
 
-    def serialize(%{status: status, error_message: nil}) do
+    def serialize(%{status: status}) do
       <<status::8>>
     end
 
     def serialize(%{status: status, error_message: msg}) do
-      <<serialize(%{status: status, error_message: nil}), msg::binary>>
+      <<serialize(%{status: status}), msg::binary>>
     end
   end
 
@@ -58,21 +58,38 @@ defmodule Chatger.Protocol.Server do
   defimpl SerializablePacket, for: ChannelsListPacket do
     def packet_id(_), do: 0x04
 
-    def serialize(%{status: status, channel_ids: channel_ids, error_message: nil}) do
+    def serialize(%{status: status, channel_ids: channel_ids}) do
       channel_ids_count = length(channel_ids)
       channels_bin = Enum.reduce(channel_ids, <<>>, fn id, acc -> acc <> <<id::64>> end)
       <<status::8, channel_ids_count::16, channels_bin::binary>>
     end
 
     def serialize(%{status: status, channel_ids: channel_ids, error_message: msg}) do
-      <<serialize(%{status: status, channel_ids: channel_ids, error_message: nil}), msg::binary>>
+      <<serialize(%{status: status, channel_ids: channel_ids}), msg::binary>>
     end
   end
 
   defmodule ChannelsPacket do
-    defstruct []
+    defstruct [:status, :channels, :error_message]
+  end
 
-    def serialize(_packet), do: {:error, :not_implemented}
+  defimpl SerializablePacket, for: ChannelsPacket do
+    def packet_id(_), do: 0x05
+
+    def serialize(%{status: status, channels: channels}) do
+      channels_count = length(channels)
+
+      channels_bin =
+        Enum.reduce(channels, <<>>, fn {channel_id, name, icon_id}, acc ->
+          acc <> <<channel_id::64, byte_size(name)::8, name::binary, icon_id::64>>
+        end)
+
+      <<status::8, channels_count::16, channels_bin::binary>>
+    end
+
+    def serialize(%{status: status, channels: channels, error_message: msg}) do
+      <<serialize(%{status: status, channels: channels}), msg::binary>>
+    end
   end
 
   defmodule HistoryPacket do
@@ -91,14 +108,14 @@ defmodule Chatger.Protocol.Server do
   defimpl SerializablePacket, for: UserStatusesPacket do
     def packet_id(_), do: 0x07
 
-    def serialize(%{status: status, user_statuses: user_statuses, error_message: nil}) do
+    def serialize(%{status: status, user_statuses: user_statuses}) do
       user_statuses_count = length(user_statuses)
       user_statuses_bin = Enum.reduce(user_statuses, <<>>, fn {id, status}, acc -> acc <> <<id::64, status::8>> end)
       <<status::8, user_statuses_count::16, user_statuses_bin::binary>>
     end
 
     def serialize(%{status: status, channels_ids: channels_ids, error_message: msg}) do
-      <<serialize(%{status: status, channels_ids: channels_ids, error_message: nil}), msg::binary>>
+      <<serialize(%{status: status, channels_ids: channels_ids}), msg::binary>>
     end
   end
 
