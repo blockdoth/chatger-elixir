@@ -1,16 +1,24 @@
 require Logger
 
 defmodule Chatger.Server.Acceptor do
-  def start(port \\ 4348) do
-    {:ok, socket} =
-      :gen_tcp.listen(port, [
-        :binary,
-        active: false,
-        reuseaddr: true
-      ])
+  use Task
 
-    Logger.info("Listening on port #{port}")
-    accept_loop(socket)
+  def start_link(port) do
+    GenServer.start_link(__MODULE__, port, name: __MODULE__)
+  end
+
+  ## GenServer Callbacks
+
+  def init(port) do
+    case :gen_tcp.listen(port, [:binary, active: false, reuseaddr: true]) do
+      {:ok, listen_socket} ->
+        Logger.info("Listening on port #{port}")
+        accept_loop(listen_socket)
+
+      {:error, reason} ->
+        Logger.error("Failed to bind to port #{port}: #{inspect(reason)}")
+        {:stop, reason}
+    end
   end
 
   defp accept_loop(listen_socket) do

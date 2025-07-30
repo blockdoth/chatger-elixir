@@ -17,7 +17,7 @@ defmodule Chatger.Server.Connection do
     end
 
     :inet.setopts(socket, active: :once)
-    {:ok, %{socket: socket, buffer: ""}}
+    {:ok, %{socket: socket, buffer: "", user_id: nil}}
   end
 
   def handle_info({:tcp, socket, data}, %{buffer: buffer} = state) do
@@ -26,12 +26,14 @@ defmodule Chatger.Server.Connection do
     # Parse 1 or more packets from the current buffer
     {packets, rest} = Transmission.recv_packet(new_buffer)
 
-    Enum.each(packets, fn packet -> Handler.handle_packet(socket, packet) end)
+    Handler.handle_packets(socket, packets)
 
     # Mark that we are ready to receive a new packet
     :inet.setopts(state.socket, active: :once)
     {:noreply, %{state | buffer: rest}}
   end
+
+
 
   def handle_info({:tcp_closed, _socket}, state) do
     Logger.info("Client disconnected")
