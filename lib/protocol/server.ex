@@ -93,9 +93,30 @@ defmodule Chatger.Protocol.Server do
   end
 
   defmodule HistoryPacket do
-    defstruct []
+    defstruct [:status, :messages, :error_message]
+  end
 
-    def serialize(_packet), do: {:error, :not_implemented}
+  defimpl SerializablePacket, for: HistoryPacket do
+    def packet_id(_), do: 0x06
+
+    def serialize(%{status: status, messages: messages}) do
+      message_count = length(messages)
+
+      messages_bin =
+        Enum.reduce(messages, <<>>, fn {message_id, sent_timestamp, user_id, channel_id, reply_id, message, media_ids},
+                                       acc ->
+          acc <>
+            <<message_id::64, sent_timestamp::64, user_id::64, channel_id::64, reply_id::64, byte_size(message)::16,
+              message::binary, length(media_ids)::16,
+              Enum.reduce(media_ids, <<>>, fn media_id, acc -> acc <> <<media_id::64>> end)::binary>>
+        end)
+
+      <<status::8, message_count::8, messages_bin::binary>>
+    end
+
+    def serialize(%{status: status, messages: messages, error_message: msg}) do
+      <<serialize(%{status: status, messages: messages}), msg::binary>>
+    end
   end
 
   # pub status: ReturnStatus,

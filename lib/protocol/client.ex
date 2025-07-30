@@ -116,9 +116,17 @@ defmodule Chatger.Protocol.Client do
   end
 
   defmodule GetHistoryPacket do
-    defstruct []
+    defstruct [:channel_id, :anchor_is_reply, :anchor, :num_messages_back]
 
-    def deserialize(_data), do: {:error, :not_implemented}
+    def deserialize(<<channel_id::64, anchor_is_reply::1, anchor::63, num_messages_back::signed-integer-8>>) do
+      {:ok,
+       %__MODULE__{
+         channel_id: channel_id,
+         anchor_is_reply: anchor_is_reply == 1,
+         anchor: anchor,
+         num_messages_back: num_messages_back
+       }}
+    end
   end
 
   defmodule GetUserStatusesPacket do

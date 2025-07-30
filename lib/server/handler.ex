@@ -3,12 +3,14 @@ defmodule Chatger.Server.Handler do
   alias Chatger.Database.Queries
   alias Chatger.Protocol.Client.GetChannelsListPacket
   alias Chatger.Protocol.Client.GetChannelsPacket
+  alias Chatger.Protocol.Client.GetHistoryPacket
   alias Chatger.Protocol.Client.GetUsersPacket
   alias Chatger.Protocol.Client.GetUserStatusesPacket
   alias Chatger.Protocol.Client.LoginPacket
   alias Chatger.Protocol.Client.SendStatusPacket
   alias Chatger.Protocol.Server.ChannelsListPacket
   alias Chatger.Protocol.Server.ChannelsPacket
+  alias Chatger.Protocol.Server.HistoryPacket
   alias Chatger.Protocol.Server.LoginAckPacket
   alias Chatger.Protocol.Server.UsersPacket
   alias Chatger.Protocol.Server.UserStatusesPacket
@@ -122,6 +124,33 @@ defmodule Chatger.Server.Handler do
      %UsersPacket{
        status: @returnSuccess,
        users: users
+     }, user_id}
+  end
+
+  def handle_packet(
+        %GetHistoryPacket{
+          channel_id: channel_id,
+          anchor_is_reply: anchor_is_reply,
+          anchor: anchor,
+          num_messages_back: num_messages_back
+        },
+        user_id
+      ) do
+    Logger.info(
+      "Received history request for channel id #{channel_id}, is reply #{anchor_is_reply}, anchor #{anchor}, messages back #{num_messages_back}"
+    )
+
+    {:ok, messages} =
+      if anchor_is_reply do
+        Queries.get_history_by_message_anchor(channel_id, anchor, num_messages_back)
+      else
+        Queries.get_history_by_timestamp_anchor(channel_id, anchor, num_messages_back)
+      end
+
+    {:reply,
+     %HistoryPacket{
+       status: @returnSuccess,
+       messages: messages
      }, user_id}
   end
 
