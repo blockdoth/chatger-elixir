@@ -16,7 +16,6 @@ defmodule Chatger.Server.Transmission do
     header_bin = Header.serialize(@api_version, packet_id, byte_size(body_bin))
     payload_bin = header_bin <> body_bin
     Logger.info("Sending packet #{Debug.get_packet_name(packet_id)} of size #{byte_size(payload_bin)} bytes")
-    Logger.debug("Body #{inspect(body_bin)}")
     :gen_tcp.send(socket, payload_bin)
   end
 
@@ -25,9 +24,7 @@ defmodule Chatger.Server.Transmission do
   def recv_packet(<<header_bin::binary-size(10), rest_bin::binary>> = full_bin, acc) do
     case Header.deserialize(header_bin) do
       {:ok, header} ->
-        Logger.info(
-          "Received packet #{Debug.get_packet_name(header.packet_id)} of length #{header.packet_length} bytes"
-        )
+        Logger.info("Received packet #{Debug.get_packet_name(header.packet_id)} of length #{header.packet_length} bytes")
 
         body_len = header.packet_length
 

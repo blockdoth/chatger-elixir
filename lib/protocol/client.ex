@@ -1,10 +1,5 @@
-require Logger
-
-defprotocol Chatger.Protocol.DeserializablePacket do
-  def deserialize(binary)
-end
-
 defmodule Chatger.Protocol.Client do
+  require Logger
   alias Chatger.Protocol.Shared.HealthCheckPacket
 
   alias __MODULE__.{
@@ -59,9 +54,7 @@ defmodule Chatger.Protocol.Client do
   defmodule SendMessagePacket do
     defstruct [:channel_id, :reply_id, :media_ids, :message_text]
 
-    def deserialize(
-          <<channel_id::64, reply_id::64, num_media::8, media_bin::binary-size(num_media * 8), message_text::binary>>
-        ) do
+    def deserialize(<<channel_id::64, reply_id::64, num_media::8, media_bin::binary-size(num_media * 8), message_text::binary>>) do
       media_ids = for <<media_id::64 <- media_bin>>, do: media_id
 
       if byte_size(message_text) <= 65535 do

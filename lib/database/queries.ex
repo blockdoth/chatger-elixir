@@ -85,7 +85,7 @@ defmodule Chatger.Database.Queries do
 
     case Database.query(sql, params) do
       {:ok, []} ->
-        Logger.debug("No channels found")
+        Logger.debug("No user statuses found")
         {:error, :not_found}
 
       {:ok, rows} ->
@@ -158,21 +158,18 @@ defmodule Chatger.Database.Queries do
 
     case Database.query(sql, params) do
       {:ok, []} ->
-        Logger.debug(
-          "No messages found in channel #{channel_id} relative to message id #{message_id}, offset #{num_messages_back} messages"
-        )
+        Logger.debug("No messages found in channel #{channel_id} relative to message id #{message_id}, offset #{num_messages_back} messages")
 
         {:error, :not_found}
 
       {:ok, rows} ->
         # The media id's column doesnt exist in the db at this point in time (30/07/25)
-        # reply id default is 0
         messages =
           Enum.map(rows, fn [message_id, sent_timestamp, user_id, channel_id, reply_id, message] ->
             {message_id, sent_timestamp, user_id, channel_id, reply_id, message, []}
           end)
 
-        Logger.debug("Found #{inspect(messages)} messages")
+        Logger.debug("Found #{length(messages)} messages")
         {:ok, messages}
 
       {:error, reason} ->
@@ -209,9 +206,7 @@ defmodule Chatger.Database.Queries do
 
     case Database.query(sql, params) do
       {:ok, []} ->
-        Logger.debug(
-          "No messages found in channel #{channel_id} relative to timestamp #{timestamp}, offset #{num_messages_back} messages"
-        )
+        Logger.debug("No messages found in channel #{channel_id} relative to timestamp #{timestamp}, offset #{num_messages_back} messages")
 
         {:ok, []}
 
@@ -222,7 +217,7 @@ defmodule Chatger.Database.Queries do
             {message_id, sent_timestamp, user_id, channel_id, reply_id, content, []}
           end)
 
-        Logger.debug("Found #{inspect(messages)} messages")
+        Logger.debug("Found #{length(messages)} messages")
         {:ok, messages}
 
       {:error, reason} ->
@@ -239,9 +234,7 @@ defmodule Chatger.Database.Queries do
 
     case Database.query(sql, params) do
       {:ok, []} ->
-        Logger.debug(
-          "Update for channel id #{channel_id}, reply id #{reply_id}, with media ids #{media_ids} and content #{message_text}"
-        )
+        Logger.debug("Update for channel id #{channel_id}, reply id #{reply_id}, with media ids #{media_ids} and content #{message_text}")
 
         {:error, :update_failed}
 

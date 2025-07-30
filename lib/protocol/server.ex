@@ -1,11 +1,10 @@
-require Logger
-
 defprotocol Chatger.Protocol.SerializablePacket do
   def packet_id(packet)
   def serialize(packet)
 end
 
 defmodule Chatger.Protocol.Server do
+  require Logger
   alias Chatger.Protocol.SerializablePacket
 
   alias __MODULE__.{
@@ -109,18 +108,14 @@ defmodule Chatger.Protocol.Server do
     def packet_id(_), do: 0x06
 
     def serialize(%{status: status, messages: messages}) do
-      message_count = length(messages)
-
       messages_bin =
-        Enum.reduce(messages, <<>>, fn {message_id, sent_timestamp, user_id, channel_id, reply_id, content, media_ids},
-                                       acc ->
+        Enum.reduce(messages, <<>>, fn {message_id, sent_timestamp, user_id, channel_id, reply_id, content, media_ids}, acc ->
           acc <>
-            <<message_id::64, sent_timestamp::64, user_id::64, channel_id::64, reply_id || 0::64,
-              byte_size(content)::16, content::binary, length(media_ids)::8,
-              Enum.reduce(media_ids, <<>>, fn media_id, acc -> acc <> <<media_id::64>> end)::binary>>
+            <<message_id::64, sent_timestamp::64, user_id::64, channel_id::64, reply_id || 0::64, byte_size(content)::16, content::binary,
+              length(media_ids)::8, Enum.reduce(media_ids, <<>>, fn media_id, acc -> acc <> <<media_id::64>> end)::binary>>
         end)
 
-      <<status::8, message_count::8, messages_bin::binary>>
+      <<status::8, length(messages)::8, messages_bin::binary>>
     end
 
     def serialize(%{status: status, messages: messages, error_message: msg}) do
@@ -128,9 +123,6 @@ defmodule Chatger.Protocol.Server do
     end
   end
 
-  # pub status: ReturnStatus,
-  # pub users: Vec<(UserId, UserStatus)>,
-  # pub error_message: Option<String>,
   defmodule UserStatusesPacket do
     defstruct [:status, :user_statuses, :error_message]
   end
@@ -162,8 +154,7 @@ defmodule Chatger.Protocol.Server do
       users_bin =
         Enum.reduce(users, <<>>, fn {user_id, status, username, pfp_id, bio}, acc ->
           acc <>
-            <<user_id::64, status::8, byte_size(username)::8, username::binary, pfp_id::64, byte_size(bio)::16,
-              bio::binary>>
+            <<user_id::64, status::8, byte_size(username)::8, username::binary, pfp_id::64, byte_size(bio)::16, bio::binary>>
         end)
 
       <<status::8, user_count::8, users_bin::binary>>

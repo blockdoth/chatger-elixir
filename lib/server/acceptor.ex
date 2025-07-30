@@ -1,13 +1,10 @@
-require Logger
-
 defmodule Chatger.Server.Acceptor do
+  require Logger
   use Task
 
   def start_link(port) do
     GenServer.start_link(__MODULE__, port, name: __MODULE__)
   end
-
-  ## GenServer Callbacks
 
   def init(port) do
     case :gen_tcp.listen(port, [:binary, active: false, reuseaddr: true]) do

@@ -8,13 +8,33 @@ defmodule Chatger.Database do
   end
 
   def init(_args) do
-    # Returns a connection which will be the state of the database connection
     db_path = Application.fetch_env!(:chatger, :db_path)
 
     with :ok = ensure_db(db_path) do
       {:ok, conn} = Sqlite3.open(db_path)
       Logger.info("Connected to database at #{db_path}")
       {:ok, conn}
+    end
+  end
+
+  def query(sql, params \\ []) do
+    GenServer.call(__MODULE__, {:exec, sql, params})
+  end
+
+  # Executes sql queries
+  def handle_call({:exec, sql, params}, _from, conn) do
+    {:ok, statement} = Sqlite3.prepare(conn, sql)
+    :ok = Sqlite3.bind(statement, params)
+    result = retrieve_results(conn, statement)
+    Sqlite3.release(conn, statement)
+    {:reply, result, conn}
+  end
+
+  def retrieve_results(conn, stmt, acc \\ []) do
+    case Sqlite3.step(conn, stmt) do
+      {:row, row} -> retrieve_results(conn, stmt, [row | acc])
+      :done -> {:ok, Enum.reverse(acc)}
+      err -> err
     end
   end
 
@@ -64,32 +84,12 @@ defmodule Chatger.Database do
       :ok
     else
       {:error, reason} ->
-        Logger.error("Failed populate database: #{inspect(reason)}")
+        Logger.error("Failed to populate database: #{inspect(reason)}")
         {:error, reason}
 
       other ->
         Logger.error("Unexpected error while populating database: #{inspect(other)}")
         {:error, other}
     end
-  end
-
-  def handle_call({:exec, sql, params}, _from, conn) do
-    {:ok, statement} = Sqlite3.prepare(conn, sql)
-    :ok = Sqlite3.bind(statement, params)
-    result = fetch_all(conn, statement)
-    Sqlite3.release(conn, statement)
-    {:reply, result, conn}
-  end
-
-  def fetch_all(conn, stmt, acc \\ []) do
-    case Sqlite3.step(conn, stmt) do
-      {:row, row} -> fetch_all(conn, stmt, [row | acc])
-      :done -> {:ok, Enum.reverse(acc)}
-      err -> err
-    end
-  end
-
-  def query(sql, params \\ []) do
-    GenServer.call(__MODULE__, {:exec, sql, params})
   end
 end

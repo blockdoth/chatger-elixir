@@ -1,29 +1,37 @@
 defmodule Chatger.Server.Handler do
   require Logger
   alias Chatger.Database.Queries
-  alias Chatger.Protocol.Client.GetChannelsListPacket
-  alias Chatger.Protocol.Client.GetChannelsPacket
-  alias Chatger.Protocol.Client.GetHistoryPacket
-  alias Chatger.Protocol.Client.GetUsersPacket
-  alias Chatger.Protocol.Client.GetUserStatusesPacket
-  alias Chatger.Protocol.Client.LoginPacket
-  alias Chatger.Protocol.Client.SendMessagePacket
-  alias Chatger.Protocol.Client.SendStatusPacket
-  alias Chatger.Protocol.Client.SendTypingPacket
-  alias Chatger.Protocol.Server.ChannelsListPacket
-  alias Chatger.Protocol.Server.ChannelsPacket
-  alias Chatger.Protocol.Server.HistoryPacket
-  alias Chatger.Protocol.Server.LoginAckPacket
-  alias Chatger.Protocol.Server.SendMessageAckPacket
-  alias Chatger.Protocol.Server.TypingPacket
-  alias Chatger.Protocol.Server.UsersPacket
-  alias Chatger.Protocol.Server.UserStatusesPacket
+
+  alias Chatger.Protocol.Client.{
+    GetChannelsListPacket,
+    GetChannelsPacket,
+    GetHistoryPacket,
+    GetUsersPacket,
+    GetUserStatusesPacket,
+    LoginPacket,
+    SendMessagePacket,
+    SendStatusPacket,
+    SendTypingPacket
+  }
+
+  alias Chatger.Protocol.Server.{
+    ChannelsListPacket,
+    ChannelsPacket,
+    HistoryPacket,
+    LoginAckPacket,
+    SendMessageAckPacket,
+    TypingPacket,
+    UsersPacket,
+    UserStatusesPacket
+  }
+
   alias Chatger.Protocol.Shared.HealthCheckPacket
   alias Chatger.Server.Transmission
 
   @returnSuccess 0x00
   @returnFail 0x01
   @returnBroadcast 0x02
+  @authErrorMessage "Auth required"
 
   def handle_packets(_socket, [], user_id), do: {:ok, user_id}
 
@@ -51,13 +59,7 @@ defmodule Chatger.Server.Handler do
     end
   end
 
-  def handle_packet(socket, packet, user_id) do
-    case handle_packet(packet, user_id) do
-      {:reply, response} -> Transmission.send_packet(socket, response)
-      {:no_reply} -> {}
-      err -> err
-    end
-  end
+  # Allowed unauthenticated
 
   def handle_packet(%HealthCheckPacket{kind: :ping}, user_id) do
     Logger.info("Received a ping. Responding with pong.")
@@ -69,8 +71,7 @@ defmodule Chatger.Server.Handler do
   end
 
   def handle_packet(%HealthCheckPacket{kind: :pong}, user_id) do
-    Logger.info("Received a pong. Not sure what to do")
-
+    Logger.info("Received a pong. Not sure what to do yet")
     {:no_reply, user_id}
   end
 
@@ -93,12 +94,27 @@ defmodule Chatger.Server.Handler do
     end
   end
 
+  # Requires auth
+
   def handle_packet(%SendStatusPacket{status: status}, user_id) do
+    if user_id == nil do
+      {:error, :auth_required}
+    end
+
     Queries.update_status(user_id, status)
     {:no_reply, user_id}
   end
 
   def handle_packet(%GetChannelsListPacket{}, user_id) do
+    if user_id == nil do
+      {:reply,
+       %ChannelsListPacket{
+         status: @returnFail,
+         channel_ids: [],
+         error_message: @authErrorMessage
+       }}
+    end
+
     {:ok, channel_ids} = Queries.get_channels_list()
 
     {:reply,
@@ -109,6 +125,15 @@ defmodule Chatger.Server.Handler do
   end
 
   def handle_packet(%GetUserStatusesPacket{}, user_id) do
+    if user_id == nil do
+      {:reply,
+       %UserStatusesPacket{
+         status: @returnFail,
+         user_statuses: [],
+         error_message: @authErrorMessage
+       }}
+    end
+
     {:ok, user_statuses} = Queries.get_user_statuses()
 
     {:reply,
@@ -119,6 +144,15 @@ defmodule Chatger.Server.Handler do
   end
 
   def handle_packet(%GetChannelsPacket{channel_ids: channel_ids}, user_id) do
+    if user_id == nil do
+      {:reply,
+       %ChannelsPacket{
+         status: @returnFail,
+         channels: [],
+         error_message: @authErrorMessage
+       }}
+    end
+
     {:ok, channels} = Queries.get_channels(channel_ids)
 
     {:reply,
@@ -129,6 +163,15 @@ defmodule Chatger.Server.Handler do
   end
 
   def handle_packet(%GetUsersPacket{user_ids: user_ids}, user_id) do
+    if user_id == nil do
+      {:reply,
+       %UsersPacket{
+         status: @returnFail,
+         users: [],
+         error_message: @authErrorMessage
+       }}
+    end
+
     {:ok, users} = Queries.get_users(user_ids)
 
     {:reply,
@@ -147,8 +190,17 @@ defmodule Chatger.Server.Handler do
         },
         user_id
       ) do
+    if user_id == nil do
+      {:reply,
+       %HistoryPacket{
+         status: @returnFail,
+         messages: [],
+         error_message: @authErrorMessage
+       }}
+    end
+
     Logger.info(
-      "Received history request for channel id #{channel_id}, is reply #{anchor_is_reply}, anchor #{anchor}, messages back #{num_messages_back}"
+      "Received history request for channel id #{channel_id}, is_reply: #{anchor_is_reply}, anchor: #{anchor}, messages back #{num_messages_back}"
     )
 
     {:ok, messages} =
@@ -166,6 +218,10 @@ defmodule Chatger.Server.Handler do
   end
 
   def handle_packet(%SendTypingPacket{is_typing: is_typing, channel_id: channel_id}, user_id) do
+    if user_id == nil do
+      {:error, :auth_required}
+    end
+
     # typing is not saved in the database
     {:broadcast, :no_reply,
      %TypingPacket{
@@ -184,6 +240,16 @@ defmodule Chatger.Server.Handler do
         },
         user_id
       ) do
+    if user_id == nil do
+      {:reply,
+       %SendMessageAckPacket{
+         status: @returnFail,
+         # Not sure if this is a great default
+         message_id: 0,
+         error_message: @authErrorMessage
+       }}
+    end
+
     reply_id = if reply_id == 0, do: nil, else: reply_id
     {:ok, {message_id, sent_timestamp}} = Queries.save_message(user_id, channel_id, reply_id, media_ids, message_text)
 
