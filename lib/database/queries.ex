@@ -98,4 +98,30 @@ defmodule Chatger.Database.Queries do
         {:error, reason}
     end
   end
+
+  def get_users(user_ids) do
+    placeholders = Enum.map_join(user_ids, ",", fn _ -> "?" end)
+    sql = "SELECT user_id, status_id, username, profile_picture_id, bio FROM users WHERE user_id IN (#{placeholders});"
+    params = user_ids
+
+    case Database.query(sql, params) do
+      {:ok, []} ->
+        Logger.debug("No users found")
+        {:error, :not_found}
+
+      {:ok, rows} ->
+        # Default pfp_id to 0 and default bio to ""
+        channels =
+          Enum.map(rows, fn [user_id, status_id, username, pfp_id, bio] ->
+            {user_id, status_id, username, pfp_id || 0, bio || ""}
+          end)
+
+        Logger.debug("Found #{inspect(channels)} users for ids #{inspect({user_ids})}")
+        {:ok, channels}
+
+      {:error, reason} ->
+        Logger.error("Query failed: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
 end

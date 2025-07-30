@@ -120,9 +120,28 @@ defmodule Chatger.Protocol.Server do
   end
 
   defmodule UsersPacket do
-    defstruct []
+    defstruct [:status, :users, :error_message]
+  end
 
-    def serialize(_packet), do: {:error, :not_implemented}
+  defimpl SerializablePacket, for: UsersPacket do
+    def packet_id(_), do: 0x08
+
+    def serialize(%{status: status, users: users}) do
+      user_count = length(users)
+
+      users_bin =
+        Enum.reduce(users, <<>>, fn {user_id, status, username, pfp_id, bio}, acc ->
+          acc <>
+            <<user_id::64, status::8, byte_size(username)::8, username::binary, pfp_id::64, byte_size(bio)::16,
+              bio::binary>>
+        end)
+
+      <<status::8, user_count::8, users_bin::binary>>
+    end
+
+    def serialize(%{status: status, users: users, error_message: msg}) do
+      <<serialize(%{status: status, users: users}), msg::binary>>
+    end
   end
 
   defmodule MediaPacket do

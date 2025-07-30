@@ -99,9 +99,6 @@ defmodule Chatger.Protocol.Client do
 
     def deserialize(<<channel_count::16, channels_bin::binary>>) do
       channels_bin_size = channel_count * 8
-      # Logger.debug("#{inspect(bin)}")
-      # Logger.debug("#{inspect(channels_bin_size)}")
-      # Logger.debug(byte_size("#{inspect(channels_bin)}"))
 
       if byte_size(channels_bin) == channels_bin_size do
         channel_ids = for <<channel_id::64 <- channels_bin>>, do: channel_id
@@ -131,9 +128,22 @@ defmodule Chatger.Protocol.Client do
   end
 
   defmodule GetUsersPacket do
-    defstruct []
+    defstruct [:user_ids]
 
-    def deserialize(_data), do: {:error, :not_implemented}
+    def deserialize(<<user_ids_count::8, users_bin::binary>>) do
+      users_bin_size = user_ids_count * 8
+
+      if byte_size(users_bin) == users_bin_size do
+        user_ids = for <<user_id::64 <- users_bin>>, do: user_id
+
+        {:ok,
+         %__MODULE__{
+           user_ids: user_ids
+         }}
+      else
+        {:error, :invalid_packet_size}
+      end
+    end
   end
 
   defmodule GetMediaPacket do

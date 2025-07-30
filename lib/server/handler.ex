@@ -3,12 +3,14 @@ defmodule Chatger.Server.Handler do
   alias Chatger.Database.Queries
   alias Chatger.Protocol.Client.GetChannelsListPacket
   alias Chatger.Protocol.Client.GetChannelsPacket
+  alias Chatger.Protocol.Client.GetUsersPacket
   alias Chatger.Protocol.Client.GetUserStatusesPacket
   alias Chatger.Protocol.Client.LoginPacket
   alias Chatger.Protocol.Client.SendStatusPacket
   alias Chatger.Protocol.Server.ChannelsListPacket
   alias Chatger.Protocol.Server.ChannelsPacket
   alias Chatger.Protocol.Server.LoginAckPacket
+  alias Chatger.Protocol.Server.UsersPacket
   alias Chatger.Protocol.Server.UserStatusesPacket
   alias Chatger.Protocol.Shared.HealthCheckPacket
   alias Chatger.Server.Transmission
@@ -110,6 +112,16 @@ defmodule Chatger.Server.Handler do
      %ChannelsPacket{
        status: @returnSuccess,
        channels: channels
+     }, user_id}
+  end
+
+  def handle_packet(%GetUsersPacket{user_ids: user_ids}, user_id) do
+    {:ok, users} = Queries.get_users(user_ids)
+
+    {:reply,
+     %UsersPacket{
+       status: @returnSuccess,
+       users: users
      }, user_id}
   end
 
