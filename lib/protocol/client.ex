@@ -161,9 +161,15 @@ defmodule Chatger.Protocol.Client do
   end
 
   defmodule SendTypingPacket do
-    defstruct []
+    defstruct [:is_typing, :channel_id]
 
-    def deserialize(_data), do: {:error, :not_implemented}
+    def deserialize(<<is_typing::8, channel_id::64>>) do
+      {:ok,
+       %__MODULE__{
+         is_typing: is_typing == 1,
+         channel_id: channel_id
+       }}
+    end
   end
 
   defmodule SendStatusPacket do

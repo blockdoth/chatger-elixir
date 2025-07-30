@@ -172,9 +172,11 @@ defmodule Chatger.Protocol.Server do
   end
 
   defmodule TypingPacket do
-    defstruct []
+    defstruct [:is_typing, :user_id, :channel_id]
 
-    def serialize(_packet), do: {:error, :not_implemented}
+    def serialize(%{is_typing: is_typing, user_id: user_id, channel_id: channel_id}) do
+      <<is_typing::8, user_id::64, channel_id::64>>
+    end
   end
 
   defmodule StatusPacket do

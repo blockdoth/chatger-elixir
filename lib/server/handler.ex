@@ -8,10 +8,12 @@ defmodule Chatger.Server.Handler do
   alias Chatger.Protocol.Client.GetUserStatusesPacket
   alias Chatger.Protocol.Client.LoginPacket
   alias Chatger.Protocol.Client.SendStatusPacket
+  alias Chatger.Protocol.Client.SendTypingPacket
   alias Chatger.Protocol.Server.ChannelsListPacket
   alias Chatger.Protocol.Server.ChannelsPacket
   alias Chatger.Protocol.Server.HistoryPacket
   alias Chatger.Protocol.Server.LoginAckPacket
+  alias Chatger.Protocol.Server.TypingPacket
   alias Chatger.Protocol.Server.UsersPacket
   alias Chatger.Protocol.Server.UserStatusesPacket
   alias Chatger.Protocol.Shared.HealthCheckPacket
@@ -26,6 +28,10 @@ defmodule Chatger.Server.Handler do
     case handle_packet(packet, user_id) do
       {:reply, response, new_user_id} ->
         Transmission.send_packet(socket, response)
+        handle_packets(socket, rest, new_user_id)
+
+      {:broadcast, _response, new_user_id} ->
+        Logger.info("Broadcast is not implemented yet")
         handle_packets(socket, rest, new_user_id)
 
       {:no_reply, new_user_id} ->
@@ -151,6 +157,16 @@ defmodule Chatger.Server.Handler do
      %HistoryPacket{
        status: @returnSuccess,
        messages: messages
+     }, user_id}
+  end
+
+  def handle_packet(%SendTypingPacket{is_typing: is_typing, channel_id: channel_id}, user_id) do
+    # typing is not saved in the database
+    {:broadcast,
+     %TypingPacket{
+       is_typing: is_typing,
+       user_id: user_id,
+       channel_id: channel_id
      }, user_id}
   end
 
