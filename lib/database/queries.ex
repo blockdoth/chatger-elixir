@@ -231,4 +231,26 @@ defmodule Chatger.Database.Queries do
         {:error, reason}
     end
   end
+
+  def save_message(user_id, channel_id, reply_id, media_ids, message_text) do
+    sql = "INSERT INTO messages (user_id, channel_id, reply_to, content) VALUES (?,?,?,?) RETURNING message_id"
+    params = [user_id, channel_id, reply_id, message_text]
+
+    case Database.query(sql, params) do
+      {:ok, []} ->
+        Logger.debug(
+          "Update for channel id #{channel_id}, reply id #{reply_id}, with media ids #{media_ids} and content #{message_text}"
+        )
+
+        {:error, :update_failed}
+
+      {:ok, [[message_id]]} ->
+        Logger.debug("Inserted message with returning message id #{message_id}")
+        {:ok, message_id}
+
+      {:error, reason} ->
+        Logger.error("Query failed: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
 end

@@ -40,8 +40,17 @@ defmodule Chatger.Protocol.Server do
 
   defmodule SendMessageAckPacket do
     defstruct [:status, :message_id, :error_message]
+  end
 
-    def serialize(_packet) do
+  defimpl SerializablePacket, for: SendMessageAckPacket do
+    def packet_id(_), do: 0x02
+
+    def serialize(%{status: status, message_id: message_id}) do
+      <<status::8, message_id::64>>
+    end
+
+    def serialize(%{status: status, message_id: message_id, error_message: msg}) do
+      <<serialize(%{status: status, message_id: message_id}), msg::binary>>
     end
   end
 

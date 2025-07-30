@@ -7,12 +7,14 @@ defmodule Chatger.Server.Handler do
   alias Chatger.Protocol.Client.GetUsersPacket
   alias Chatger.Protocol.Client.GetUserStatusesPacket
   alias Chatger.Protocol.Client.LoginPacket
+  alias Chatger.Protocol.Client.SendMessagePacket
   alias Chatger.Protocol.Client.SendStatusPacket
   alias Chatger.Protocol.Client.SendTypingPacket
   alias Chatger.Protocol.Server.ChannelsListPacket
   alias Chatger.Protocol.Server.ChannelsPacket
   alias Chatger.Protocol.Server.HistoryPacket
   alias Chatger.Protocol.Server.LoginAckPacket
+  alias Chatger.Protocol.Server.SendMessageAckPacket
   alias Chatger.Protocol.Server.TypingPacket
   alias Chatger.Protocol.Server.UsersPacket
   alias Chatger.Protocol.Server.UserStatusesPacket
@@ -167,6 +169,24 @@ defmodule Chatger.Server.Handler do
        is_typing: is_typing,
        user_id: user_id,
        channel_id: channel_id
+     }, user_id}
+  end
+
+  def handle_packet(
+        %SendMessagePacket{
+          channel_id: channel_id,
+          reply_id: reply_id,
+          media_ids: media_ids,
+          message_text: message_text
+        },
+        user_id
+      ) do
+    {:ok, message_id} = Queries.save_message(user_id, channel_id, reply_id, media_ids, message_text)
+
+    {:reply,
+     %SendMessageAckPacket{
+       status: @returnSuccess,
+       message_id: message_id
      }, user_id}
   end
 
