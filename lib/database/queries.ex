@@ -219,8 +219,8 @@ defmodule Chatger.Database.Queries do
         # The media id's column doesnt exist in the db at this point in time (30/07/25)
         # reply id default is 0
         messages =
-          Enum.map(rows, fn [message_id, sent_timestamp, user_id, channel_id, reply_id, message] ->
-            {message_id, sent_timestamp, user_id, channel_id, reply_id || 0, message, []}
+          Enum.map(rows, fn [message_id, sent_timestamp, user_id, channel_id, reply_id, content] ->
+            {message_id, sent_timestamp, user_id, channel_id, reply_id || 0, content, []}
           end)
 
         Logger.debug("Found #{inspect(messages)} messages")
@@ -233,7 +233,9 @@ defmodule Chatger.Database.Queries do
   end
 
   def save_message(user_id, channel_id, reply_id, media_ids, message_text) do
-    sql = "INSERT INTO messages (user_id, channel_id, reply_to, content) VALUES (?,?,?,?) RETURNING message_id"
+    sql =
+      "INSERT INTO messages (user_id, channel_id, reply_to, content) VALUES (?,?,?,?) RETURNING message_id, created_at"
+
     params = [user_id, channel_id, reply_id, message_text]
 
     case Database.query(sql, params) do
@@ -244,9 +246,9 @@ defmodule Chatger.Database.Queries do
 
         {:error, :update_failed}
 
-      {:ok, [[message_id]]} ->
-        Logger.debug("Inserted message with returning message id #{message_id}")
-        {:ok, message_id}
+      {:ok, [[message_id, created_at]]} ->
+        Logger.debug("Inserted message with returning message id #{message_id} created at #{created_at}")
+        {:ok, {message_id, created_at}}
 
       {:error, reason} ->
         Logger.error("Query failed: #{inspect(reason)}")

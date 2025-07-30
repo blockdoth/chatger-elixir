@@ -17,6 +17,8 @@ defmodule Chatger.Server.Connection do
     end
 
     :inet.setopts(socket, active: :once)
+
+    Registry.register(Chatger.ConnectionRegistry, :connections, self())
     {:ok, %{socket: socket, buffer: "", user_id: nil}}
   end
 
@@ -31,6 +33,14 @@ defmodule Chatger.Server.Connection do
     # Mark that we are ready to receive a new packet
     :inet.setopts(state.socket, active: :once)
     {:noreply, %{state | buffer: rest, user_id: new_user_id}}
+  end
+
+  def handle_info({:broadcast, packet, origin_id}, state) do
+    if origin_id != state.user_id do
+      Chatger.Server.Transmission.send_packet(state.socket, packet)
+    end
+
+    {:noreply, state}
   end
 
   def handle_info({:tcp_closed, _socket}, state) do

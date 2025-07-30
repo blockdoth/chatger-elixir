@@ -23,6 +23,7 @@ defmodule Chatger.Server.Handler do
 
   @returnSuccess 0x00
   @returnFail 0x01
+  @returnBroadcast 0x02
 
   def handle_packets(_socket, [], user_id), do: {:ok, user_id}
 
@@ -32,8 +33,14 @@ defmodule Chatger.Server.Handler do
         Transmission.send_packet(socket, response)
         handle_packets(socket, rest, new_user_id)
 
-      {:broadcast, _response, new_user_id} ->
+      {:broadcast, :no_reply, broadcast_response, new_user_id} ->
         Logger.info("Broadcast is not implemented yet")
+        Transmission.broadcast_packet(broadcast_response, new_user_id)
+        handle_packets(socket, rest, new_user_id)
+
+      {:broadcast, response, broadcast_response, new_user_id} ->
+        Transmission.send_packet(socket, response)
+        Transmission.broadcast_packet(broadcast_response, new_user_id)
         handle_packets(socket, rest, new_user_id)
 
       {:no_reply, new_user_id} ->
@@ -164,7 +171,7 @@ defmodule Chatger.Server.Handler do
 
   def handle_packet(%SendTypingPacket{is_typing: is_typing, channel_id: channel_id}, user_id) do
     # typing is not saved in the database
-    {:broadcast,
+    {:broadcast, :no_reply,
      %TypingPacket{
        is_typing: is_typing,
        user_id: user_id,
@@ -181,12 +188,18 @@ defmodule Chatger.Server.Handler do
         },
         user_id
       ) do
-    {:ok, message_id} = Queries.save_message(user_id, channel_id, reply_id, media_ids, message_text)
+    {:ok, {message_id, sent_timestamp}} = Queries.save_message(user_id, channel_id, reply_id, media_ids, message_text)
 
-    {:reply,
+    {:broadcast,
      %SendMessageAckPacket{
        status: @returnSuccess,
        message_id: message_id
+     },
+     %HistoryPacket{
+       status: @returnBroadcast,
+       messages: [
+         {message_id, sent_timestamp, user_id, channel_id, reply_id, message_text, media_ids}
+       ]
      }, user_id}
   end
 

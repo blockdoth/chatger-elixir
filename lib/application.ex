@@ -3,6 +3,7 @@ defmodule Chatger.Application do
 
   def start(_type, _args) do
     children = [
+      {Registry, keys: :duplicate, name: Chatger.ConnectionRegistry},
       Chatger.Database,
       {Chatger.Server.Acceptor, 4348}
     ]

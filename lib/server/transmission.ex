@@ -63,4 +63,12 @@ defmodule Chatger.Server.Transmission do
   end
 
   def recv_packet(buffer, acc), do: {Enum.reverse(acc), buffer}
+
+  def broadcast_packet(packet, origin_id) do
+    Registry.dispatch(Chatger.ConnectionRegistry, :connections, fn entries ->
+      for {pid, _} <- entries do
+        send(pid, {:broadcast, packet, origin_id})
+      end
+    end)
+  end
 end

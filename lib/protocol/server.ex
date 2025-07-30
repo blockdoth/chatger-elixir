@@ -182,9 +182,14 @@ defmodule Chatger.Protocol.Server do
 
   defmodule TypingPacket do
     defstruct [:is_typing, :user_id, :channel_id]
+  end
+
+  defimpl SerializablePacket, for: TypingPacket do
+    def packet_id(_), do: 0x0A
 
     def serialize(%{is_typing: is_typing, user_id: user_id, channel_id: channel_id}) do
-      <<is_typing::8, user_id::64, channel_id::64>>
+      is_typing_int = if is_typing, do: 1, else: 0
+      <<is_typing_int::8, user_id::64, channel_id::64>>
     end
   end
 
